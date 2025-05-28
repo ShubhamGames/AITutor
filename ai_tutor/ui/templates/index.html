@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tutor - Home{% endblock %}
+
+{% block content %}
+    <h1>Welcome to the AI Tutor</h1>
+    <form id="tutorForm">
+        <div>
+            <label for="studentId">Student ID:</label>
+            <input type="text" id="studentId" name="studentId" placeholder="Enter Student ID" required>
+        </div>
+        <div>
+            <label for="prompt">Your Question:</label>
+            <textarea id="prompt" name="prompt" rows="4" placeholder="Ask your question..." required></textarea>
+        </div>
+        <div>
+            <button type="submit">Ask</button>
+        </div>
+    </form>
+    <div id="responseArea">
+        <h2>Response:</h2>
+        <p id="tutorResponse"></p>
+    </div>
+    <div id="historyArea">
+        <h2>Interaction History:</h2>
+        <ul id="interactionList"></ul>
+    </div>
+{% endblock %}
+
+<script>
+    document.getElementById('tutorForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const studentIdInput = document.getElementById('studentId');
+        const promptTextarea = document.getElementById('prompt');
+        const tutorResponseP = document.getElementById('tutorResponse');
+
+        const studentId = studentIdInput.value.trim();
+        const promptText = promptTextarea.value.trim();
+
+        if (!studentId || !promptText) {
+            tutorResponseP.textContent = 'Please enter both Student ID and your question.';
+            tutorResponseP.style.color = 'red';
+            return;
+        }
+
+        tutorResponseP.textContent = 'Thinking...';
+        tutorResponseP.style.color = 'black'; // Reset color
+
+        try {
+            const response = await fetch('/ask', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ studentId: studentId, prompt: promptText }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({detail: 'Unknown server error'}));
+                tutorResponseP.textContent = `Error: ${response.status} - ${errorData.detail || 'Could not reach the AI Tutor.'}`;
+                tutorResponseP.style.color = 'red';
+                return;
+            }
+
+            const data = await response.json();
+            tutorResponseP.textContent = data.response;
+            // Optionally clear the prompt:
+            // promptTextarea.value = ''; 
+            // studentIdInput.disabled = true; // Optionally disable student ID field after first successful interaction
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+            tutorResponseP.textContent = 'An error occurred while trying to get a response. Please check your network connection.';
+            tutorResponseP.style.color = 'red';
+        }
+    });
+</script>
